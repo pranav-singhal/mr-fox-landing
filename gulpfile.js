@@ -8,7 +8,7 @@
 // GULP PLUGINS
 
 let gulp = require('gulp'),
-    watch = require('gulp-watch'),
+    { watch } = require('gulp'),
     prefixer = require('gulp-autoprefixer'),
     sass = require('gulp-sass')(require('sass')),
     uglify = require('gulp-uglify'),
@@ -84,7 +84,7 @@ function printError(error) {
 
 /////////////////////////////////////////////////////////////////////////////
 // BROWSERSYNC SERVER
-gulp.task('run:server', function () {
+gulp.task('run:server', function (cb) {
     server.init({
         server: {
             baseDir: "./dist/", // base dir path
@@ -95,21 +95,24 @@ gulp.task('run:server', function () {
         port: 9000, // port
         logPrefix: "frontend", // console log prefix
         files: ['./dist/**/*'], // files path for changes watcher
-        watchTask: true // watcher on/off
+        watchTask: false // watcher on/off
     });
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
 // VENDORS BUILD
-gulp.task('build:vendors', function () {
-    return gulp.src([path.src.vendors_by_bower, path.src.vendors_by_hands]) // get folders with vendors components
+gulp.task('build:vendors', function (cb) {
+    gulp.src([path.src.vendors_by_bower, path.src.vendors_by_hands]) // get folders with vendors components
         .pipe(plumber()) //error catcher
         .pipe(gulp.dest(path.build.vendors)); // copy to destination folder
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
 // BUILD STRUCTURE
 gulp.task('build:structure', function (cb) {
+    console.log("running again")
     gulp.src(path.src.sites) // get sites
         .pipe(plumber()) //error catcher
         .pipe(rigger()) // include component templates to generated pages
@@ -151,17 +154,18 @@ gulp.task('build:css', function (cb) {
 
 /////////////////////////////////////////////////////////////////////////////
 // FONTS BUILD
-gulp.task('build:fonts', function () {
-    return gulp.src(path.src.fonts)
+gulp.task('build:fonts', function (cb) {
+    gulp.src(path.src.fonts)
         .pipe(plumber())
         .pipe(gulp.dest(path.build.fonts))
         .pipe(reload({ stream: true }));
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
 // IMAGES BUILD
-gulp.task('build:img', function () {
-    return gulp.src(path.src.img)
+gulp.task('build:img', function (cb) {
+    gulp.src(path.src.img)
         .pipe(plumber())
         .on('error', printError) // print error if found
         // .pipe(imagemin([
@@ -174,12 +178,13 @@ gulp.task('build:img', function () {
         // ]))
         .pipe(gulp.dest(path.build.img))
         .pipe(server.reload({ stream: true }));
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
 // SVG BUILD
-gulp.task('build:svg', function () {
-    return gulp.src(path.src.svg)
+gulp.task('build:svg', function (cb) {
+    gulp.src(path.src.svg)
         .pipe(svgmin(function (file) {
             return {
                 plugins: [{
@@ -214,13 +219,14 @@ gulp.task('build:svg', function () {
         .pipe(reload({
             stream: true
         }));
+    cb();
 });
 
 
 /////////////////////////////////////////////////////////////////////////////
 // SVG SPRITES BUILD
-gulp.task('build:svg_sprite', function () {
-    return gulp.src(path.src.svg_sprite)
+gulp.task('build:svg_sprite', function (cb) {
+    gulp.src(path.src.svg_sprite)
         .pipe(plumber())
         .pipe(svgmin(function (file) {
             return {
@@ -258,18 +264,20 @@ gulp.task('build:svg_sprite', function () {
         .pipe(rename('sprite.svg'))
         .pipe(gulp.dest(path.build.svg))
         .pipe(reload({ stream: true }));
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
 // JAVASCRIPT BUILD
-gulp.task('build:js', function () {
-    return gulp.src(path.src.js)
+gulp.task('build:js', function (cb) {
+    gulp.src(path.src.js)
         .pipe(plumber())
         .pipe(rigger())
         .pipe(uglify())
         .pipe(rename('common.min.js'))
         .pipe(gulp.dest(path.build.js))
         .pipe(server.reload({ stream: true }));
+    cb();
 });
 
 /////////////////////////////////////////////////////////////////////////////
@@ -300,30 +308,14 @@ gulp.task('build',
 /////////////////////////////////////////////////////////////////////////////
 // FILES CHANGE WATCHER
 gulp.task('watch', function (cb) {
-    watch([path.watch.sites, path.watch.templates], function (event, cb) { // watch sites folders
-        gulp.series('build:structure'); // run build:structure task
-    });
-    watch([path.watch.css], function (event, cb) { // watch css folder
-        gulp.series('build:css'); // run build:css task
-    });
-    watch([path.watch.js], function (event, cb) { // watch js folder
-        gulp.start('build:js'); // run build:js task
-    });
-    watch([path.watch.img], function (event, cb) { // watch img folder
-        gulp.series('build:img'); // run build:img task
-    });
-    watch([path.watch.svg], function (event, cb) { // watch svg folder
-        gulp.series('build:svg'); // run build:svg task
-    });
-    watch([path.watch.svg_sprite], function (event, cb) { // watch svg-sprite folder
-        gulp.series('build:svg_sprite'); // run build:svg_sprite
-    });
-    watch([path.watch.fonts], function (event, cb) { // watch fonts folder
-        gulp.series('build:fonts'); // run build:fonts task
-    });
-    watch([path.watch.vendors_by_bower, path.watch.vendors_by_hands], function (event, cb) { // watch folder with vendors components
-        gulp.series('build:vendors'); // run build:vendors task
-    });
+    watch([path.watch.sites, path.watch.templates], gulp.series('build:structure'))
+    watch([path.watch.css], gulp.series('build:css'));
+    watch([path.watch.js], gulp.series('build:js'));
+    watch([path.watch.img], gulp.series('build:img'));
+    watch([path.watch.svg], gulp.series('build:svg'));
+    watch([path.watch.svg_sprite], gulp.series('build:svg_sprite'));
+    watch([path.watch.fonts], gulp.series('build:fonts'));
+    watch([path.watch.vendors_by_bower, path.watch.vendors_by_hands], gulp.series('build:vendors'));
     cb();
 });
 
